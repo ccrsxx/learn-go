@@ -1,8 +1,6 @@
 # Learn Go
 
-## Go vs. Node/Python: The Import & Module Paradigm Shift
-
-Coming from Node.js (TypeScript) or Python, the way Go handles imports and modules feels like a "Culture Shock." This document summarizes the key differences I learned during my time learning Go.
+This is a personal repository for learning the Go programming language. It contains various examples, exercises, and notes to help me understand Go's syntax, features, and best practices.
 
 ## 1. The Module Name
 
@@ -43,7 +41,7 @@ Go forbids relative imports like `../`. You must use the **Full Module Path** de
 import "github.com/ccrsxx/learn-go/internal/utils"
 ```
 
-### Why "example/test" is a trap
+### The Pitfall of Wrong Module Names
 
 If you initialize your module as `go mod init example/test`:
 
@@ -57,7 +55,7 @@ If you initialize your module as `go mod init example/test`:
 If I import my own code:
 
 ```go
-import "github.com/ccrsxx/learn-go/src/getting-started/greetings"
+import "github.com/ccrsxx/learn-go/internal/utils"
 ```
 
 Why doesn't Go try to download this from the internet?
@@ -120,58 +118,85 @@ Go does not allow you to mix package names in the same directory.
   - **EITHER** an Executable (`package main`)
   - **OR** a Library (`package utils`)
 
-**Common Project Structure to solve this:**
+## 7. The "Unused Import" Trap
 
-```text
-/my-project
-  /cmd/api       -> package main (The entry point)
-  /internal/db   -> package db   (The library code)
+Go is extremely strict about code hygiene compared to interpreted languages.
+
+- **Node/Python:** You can leave `import fs` or `import os` at the top of the file while you code.
+- **Go:** **Compile-Time Error.** The code will not run if an import is unused.
+
+**The Debugging Workaround:**
+If you need to comment out code but keep the import, use the **Blank Identifier (`_`)**:
+
+```go
+import (
+    "fmt"
+    _ "log/slog" // Compiler ignores that this is unused
+)
 ```
 
-## 7. String Formatting: Replacing Template Literals
+## 8. Advanced Printing: Replacing Template Literals
 
-In Node.js, you use backticks for string interpolation. Go uses **Printf verbs** (similar to C or Python's old `%` formatting).
+In Node.js, you use backticks for string interpolation. Go uses **Printf verbs**.
 
-### The Syntax Shift
+### 1. Simple Printing (`Printf`)
 
-- **Node.js:** `` `User ${name} has ID ${id}` ``
-- **Go:** `fmt.Printf("User %s has ID %d\n", name, id)`
+Unlike `Println`, `Printf` does **not** add a new line automatically. You must add `\n`.
 
-  ### 1. Simple Printing to Console
+```go
+// Node: console.log(`Hello ${name}, count: ${count}`)
+fmt.Printf("Hello %s, count: %d\n", name, count)
+```
 
-  Unlike `Println`, `Printf` does **not** add a new line automatically. You must add `\n`.
+### 2. Indexed Arguments (Reusing Variables)
 
-  ```go
-  name := "Alice"
-  count := 5
+You can reuse arguments without passing them multiple times using `[n]`.
 
-  // Node: console.log(`Hello ${name}, count: ${count}`)
-  fmt.Printf("Hello %s, count: %d\n", name, count)
-  ```
+```go
+user := "Alice"
+role := "Admin"
 
-  ### 2. Better Formatting Control with Explicit Argument Indexes
+// Use user (1st arg) twice
+fmt.Printf("%[1]s is a %[2]s. Goodbye %[1]s.\n", user, role)
+```
 
-  Using argument indexes, you can reuse arguments without passing them multiple times.
+### 3. Debugging Structs (`%+v`)
 
-  ```go
-  user := "Alice"
-  role := "Admin"
+This is the closest thing to `JSON.stringify` for debugging objects.
 
-  // "Alice is a Admin. Goodbye Alice."
-  // We use user (1st arg) twice without passing it twice!
-  fmt.Printf("%[1]s is a %[2]s. Goodbye %[1]s.\n", user, role)
-  ```
+- `%v`: Prints values `{Alice 101}` (Hard to read)
+- `%+v`: Prints fields `{Name:Alice ID:101}` (**Use this\!**)
 
-  ### 3. Using slog for Structured Logging
+### 4. Using slog for Structured Logging
 
-  Go's `slog` package allows for structured logging, which is more powerful than simple string formatting. You can log key-value pairs that can be easily parsed and analyzed.
+Go's `slog` package provides structured logging capabilities, allowing you to log messages with key-value pairs for better context.
 
-  ```go
-  import (
-    "log/slog"
-  )
+```go
+import "log/slog"
 
-  // Example of structured logging
-  // User login user="Alice" id=101 active=true
-  slog.Info("User login", "user", "Alice", "id", 101, "active", true)
-  ```
+// User login user="Alice" id=101 active=true
+slog.Info("User login", "user", "Alice", "id", 101, "active", true)
+```
+
+## 9. Array on Go with slices
+
+Here's an array on Go compared to JavaScript arrays.
+
+| Operation  | JavaScript               | Go                          |
+| :--------- | :----------------------- | :-------------------------- |
+| **Create** | `const arr = ["a", "b"]` | `arr := []string{"a", "b"}` |
+| **Length** | `arr.length`             | `len(arr)`                  |
+| **Push**   | `arr.push("c")`          | `arr = append(arr, "c")`    |
+| **Get**    | `arr[0]`                 | `arr[0]`                    |
+| **Slice**  | `arr.slice(1, 3)`        | `arr[1:3]`                  |
+
+## 10. Most used fmt functions
+
+Go has many printing functions, but these 4 cover 95% of use cases.
+
+| Function          | Output     | Adds Newline? | Use Case               | Node.js Equivalent      |
+| :---------------- | :--------- | :------------ | :--------------------- | :---------------------- |
+| **`fmt.Println`** | Console    | ✅ Yes        | Simple logging         | `console.log(val)`      |
+| **`fmt.Printf`**  | Console    | ❌ No         | Formatting variables   | `console.log(template)` |
+| **`fmt.Sprintf`** | **String** | ❌ No         | Format to **variable** | `const s = template`    |
+| **`fmt.Errorf`**  | **Error**  | ❌ No         | Wrap/Create **Error**  | `new Error(template)`   |

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/ccrsxx/learn-go/src/getting-started/greetings"
 )
@@ -16,6 +17,28 @@ func sayHello() {
 	fmt.Println(message)
 }
 
+func sayHelloRandom() {
+	// Set properties of the predefined Logger, including
+	// the log entry prefix and a flag to disable printing
+	// the time, source file, and line number.
+	log.SetPrefix("greetings: ")
+	log.SetFlags(0)
+
+	// Request a greeting message.
+	message, err := greetings.HelloRandomError("Rem Rin")
+
+	// If an error was returned, print it to the console and
+	// exit the program.
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// If no error was returned, print the returned message
+	// to the console.
+	fmt.Println(message)
+}
+
 func main() {
-	sayHello()
+	// sayHello()
+	sayHelloRandom()
 }
