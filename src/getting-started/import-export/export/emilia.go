@@ -2,6 +2,8 @@ package export // <--- THIS LINE IS MANDATORY
 
 import "fmt"
 
+const Emilia = "Emilia"
+
 // Notice it is Capitalized so it is "Exported" (visible)
 func BestGirl() {
 	fmt.Println("Emilia is the best!")

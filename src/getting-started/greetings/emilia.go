@@ -2,6 +2,8 @@ package greetings
 
 import "fmt"
 
-func EmiliaIsCute() {
+const emilia = "Emilia"
+
+func emiliaIsCute() {
 	fmt.Println("Emilia is cute!")
 }

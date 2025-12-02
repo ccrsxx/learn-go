@@ -36,7 +36,7 @@ func HelloRandomError(name string) (string, error) {
 		return "", errors.New("empty name")
 	}
 
-	message := fmt.Sprintf(randomFormat(), name)
+	message := fmt.Sprintf(randomFormat(), emilia)
 
 	return message, nil
 }
