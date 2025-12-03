@@ -345,3 +345,148 @@ Go does not have "truthy" or "falsy" values like JavaScript or Python. Every con
 | **Pointer**   | `if (ptr)`        | `if ptr != nil`                                                         |
 | **Slice/Map** | `if (arr)`        | `if len(arr) > 0` (Check contents) or `if arr != nil` (Check existence) |
 | **Error**     | `if (err)`        | `if err != nil`                                                         |
+
+## 16. If with a Short Statement
+
+Go allows you to execute a short statement **before** the condition in an `if` block. It's available only within the scope of that `if` block and any associated `else` blocks.
+
+### The Syntax
+
+`if statement; condition { ... }`
+
+```go
+import "math"
+
+func pow(x, n, lim float64) float64 {
+    // "v" is initialized right here
+    if v := math.Pow(x, n); v < lim {
+        return v
+    } else  {
+      // "v" is also available here
+        fmt.Printf("%g >= %g\n", v, lim)
+    }
+    // "v" is NOT available here. It died at the closing brace } above.
+    return lim
+}
+```
+
+## 17. Switch Statements: Safe by Default
+
+Go's `switch` statement works differently than JavaScript's or C's. It is safer and more powerful.
+
+### 1. Automatic Break (No Fallthrough)
+
+In Node.js, if you forget `break`, code "falls through" to the next case.
+In Go, **`break` is automatic**. Code stops after a match.
+
+```go
+name := "Emilia"
+switch name {
+case "Emilia":
+    fmt.Println("Best Girl")
+    // STOPS HERE. Does not run the next case.
+case "Rem":
+    fmt.Println("Who?")
+}
+```
+
+### 1. The `fallthrough` Keyword
+
+If you _want_ the behavior of running the next case (ignoring the next condition\!), you must explicitly ask for it.
+
+```go
+switch n {
+case 1:
+    fmt.Println("One")
+    fallthrough // Forcefully runs "case 2" code without checking!
+case 2:
+    fmt.Println("Two")
+}
+```
+
+### 1. Multiple Cases & Logic
+
+You can list multiple values with commas, or use a switch without a variable to replace `if/else` chains.
+
+```go
+// Multiple matches
+case "Saturday", "Sunday":
+    fmt.Println("Weekend")
+
+// Logic replacement (cleaner than if/else if)
+t := time.Now()
+switch {
+case t.Hour() < 12:
+    fmt.Println("Morning")
+case t.Hour() < 17:
+    fmt.Println("Afternoon")
+default:
+    fmt.Println("Evening")
+}
+```
+
+## 18. Defer: The Cleanup Scheduler
+
+Go uses defer instead of try/finally. It schedules a function call to run immediately before the surrounding function returns.
+
+### 1. Basic Usage
+
+```go
+func main() {
+defer fmt.Println("World") // Runs LAST
+fmt.Println("Hello") // Runs FIRST
+}
+// Output: Hello World
+```
+
+### 1. The Real Use Case (Cleanup)
+
+Open a resource and immediately defer closing it. This guarantees cleanup even if errors occur later.
+
+```go
+file, err := os.Open("data.txt")
+if err != nil { return err }
+
+// ⚠️ CRITICAL: Only defer AFTER checking for error.
+// If os.Open fails, 'file' is nil. Calling nil.Close() would panic.
+defer file.Close()
+
+// Read file...
+// Parse lines...
+// Return result...
+```
+
+### 1. LIFO Order (Stack)
+
+Multiple defers are executed in Last-In, First-Out order (like a stack of plates).
+
+```go
+defer fmt.Println("First") // Runs 3rd
+defer fmt.Println("Second") // Runs 2nd
+defer fmt.Println("Third") // Runs 1st
+// Output: Third, Second, First
+```
+
+## 19. Pointers: References to Values
+
+Pointers in Go are variables that store the memory address of another variable. They allow you to reference and manipulate the original value directly.
+
+### 1. Declaring Pointers
+
+Create a pointer using the `*` operator and get the address of a variable using the `&` operator.
+
+```go
+var p *int        // Declare a pointer to an int
+i := 42           // An integer variable
+p = &i           // Assign the address of i to p
+```
+
+### 2. Dereferencing Pointers
+
+Basically how you get or set the value at the address a pointer is pointing to.
+
+```go
+fmt.Println(*p) // Dereference p to get the value of i (prints 42)
+*p = 21         // Change the value at the address p points to
+fmt.Println(i)  // Now i is 21
+```
