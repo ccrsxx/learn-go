@@ -490,3 +490,86 @@ fmt.Println(*p) // Dereference p to get the value of i (prints 42)
 *p = 21         // Change the value at the address p points to
 fmt.Println(i)  // Now i is 21
 ```
+
+## 20. Structs: Public vs. Private Fields
+
+Just like functions, the visibility of struct fields is controlled entirely by **Capitalization**.
+
+| Case          | Visibility               | Description                                                    |
+| :------------ | :----------------------- | :------------------------------------------------------------- |
+| **Uppercase** | **Exported (Public)**    | Visible to **other packages**. Required for JSON/XML encoding. |
+| **Lowercase** | **Unexported (Private)** | Visible **ONLY** inside the same package.                      |
+
+Here is a section you can add to your `README.md`. I’ve titled it to capture exactly what we discussed: the difference between "Zero Value" and "No Value," and why Go forces you to dance with pointers.
+
+## 21. Handling Optional Values (The `nil` vs. `0` Dilemma)
+
+In JavaScript/Node, you often rely on values being "Falsy" (`0`, `null`, `undefined`, `false`) to check if data exists. In Go, this concept **does not exist**.
+
+### The Problem: Zero Values
+
+In Go, every variable **always** has a value. If you don't assign one, it gets the **Zero Value**.
+
+| Type     | Zero Value | "Does it exist?"                          |
+| :------- | :--------- | :---------------------------------------- |
+| `int`    | `0`        | You don't know (Is it 0, or missing?)     |
+| `bool`   | `false`    | You don't know (Is it false, or missing?) |
+| `string` | `""`       | You don't know (Is it empty, or missing?) |
+
+**The "Baby Age" Bug:**
+If you use a plain `int` for Age, you cannot distinguish between a "Newborn" (0) and "User didn't tell us" (Default 0).
+
+### The Solution: Pointers (`*int`)
+
+To represent "Optional" or "Missing" data for primitives (numbers, booleans), you must use a **Pointer**.
+
+- **`nil`** = Data is missing.
+- **`ptr`** = Data exists (even if it is `0`).
+
+```go
+type User struct {
+    Name string
+    Age  *int // Pointer allows 'nil'
+}
+```
+
+### The "Clumsy Dance" of Assignment
+
+Because Go is strict, you cannot just pass a raw number into a pointer slot. You also cannot take the address of a literal number (`&10` is an error). You must perform a 2-step process:
+
+**JavaScript:**
+
+```javascript
+const u = { age: 10 }; // Easy
+```
+
+**Go:**
+
+```go
+// Step 1: Create a variable to hold the value
+myAge := 10
+
+// Step 2: Point to that variable
+u := User{
+    Age: &myAge,
+}
+```
+
+### Checking the Value (Safety)
+
+You trade **Write Convenience** for **Read Safety**. You never accidentally treat `null` as `0`.
+
+```go
+if u.Age != nil {
+    // We know the user provided an age!
+    // Now we extract the value using '*'
+    fmt.Println("Real Age:", *u.Age)
+} else {
+    fmt.Println("User declined to answer")
+}
+```
+
+**Summary:**
+
+- Use **`int`** when the value is required and `0` is a valid number.
+- Use **`*int`** when you strictly need to know the difference between "Zero" and "Nothing."

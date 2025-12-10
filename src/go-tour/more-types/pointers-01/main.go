@@ -19,11 +19,11 @@ func withPointer() {
 
 	emilia = "Rin"
 
-	fmt.Println("With pointer", emilia, *emiliaWaifu)
+	fmt.Println("With pointer", emilia, *emiliaWaifu, emiliaWaifu)
 
 	*emiliaWaifu = "Yes"
 
-	fmt.Println("With pointer after change", emilia, *emiliaWaifu)
+	fmt.Println("With pointer after change", emilia, *emiliaWaifu, emiliaWaifu)
 }
 
 func detailPointer() {
