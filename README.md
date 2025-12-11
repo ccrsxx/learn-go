@@ -693,3 +693,15 @@ These are just pointers/labels. They don't point to anything yet.
 
 - **Zero Value:** "I have a box, but it's empty."
 - **Nil:** "I have a label, but no box."
+
+Based on our discussion, here are the new sections to add to your `README.md`. These cover the "Best Practices" for naming and the deep dive into Arrays vs. Slices that we just covered.
+
+## 27. File & Directory Naming Conventions
+
+Go is opinionated about naming. Here is the standard way to name your files and folders.
+
+| Type                | Convention                    | Example                          | Why?                                                                            |
+| :------------------ | :---------------------------- | :------------------------------- | :------------------------------------------------------------------------------ |
+| **Source Files**    | `snake_case`                  | `user_profile.go`, `api_test.go` | Required for `_test.go` and `_windows.go` build tags to work.                   |
+| **Package Folders** | `snake_case` (or single word) | `json_parser/`, `handlers/`      | Package name must match folder name. `kebab-case` is invalid in `package name`. |
+| **Project Root**    | `kebab-case`                  | `github.com/user/learn-go`       | Standard for repositories.                                                      |
