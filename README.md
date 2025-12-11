@@ -573,3 +573,123 @@ if u.Age != nil {
 
 - Use **`int`** when the value is required and `0` is a valid number.
 - Use **`*int`** when you strictly need to know the difference between "Zero" and "Nothing."
+
+## 22. Arrays vs. Slices: The "Fixed" vs. "Dynamic"
+
+Coming from JavaScript/Python, you usually only have "Lists." Go splits this into two concepts.
+
+### 1. Arrays (`[Size]Type`)
+
+A solid block of memory with a **Fixed Size**.
+
+- **Syntax:** `[3]int{1, 2, 3}` (Number in brackets).
+- **Behavior:** It is a **Value Type**. Assigning it to a new variable **copies the whole array**.
+- **Use Case:** Rarely used directly (mostly for memory optimization).
+
+### 2. Slices (`[]Type`)
+
+A "Window" looking at an underlying array.
+
+- **Syntax:** `[]int{1, 2, 3}` (Empty brackets).
+- **Behavior:** It is a **Reference Type** (sort of). Assigning it copies the **Pointer**, not the data.
+- **Use Case:** Used 99% of the time in Go.
+
+| Operation      | Array `[3]int`        | Slice `[]int`            |
+| :------------- | :-------------------- | :----------------------- |
+| **Resize**     | ❌ Impossible         | ✅ Dynamic (`append`)    |
+| **Assignment** | 🐢 Copies Data (Slow) | 🐇 Copies Pointer (Fast) |
+
+## 23. Slice Internals: Length vs. Capacity
+
+A slice is just a small struct with 3 fields: **Pointer**, **Length**, and **Capacity**.
+
+```go
+s := []int{2, 3, 5, 7, 11, 13}
+s = s[:0] // Length is 0, but Data is still there!
+s = s[:4] // We can "resurrect" the data because Cap is still 6.
+```
+
+### The Rules of Slicing
+
+1. **Slicing the End (`s[:4]`)**:
+   - **Reversible.** You are just "closing the curtain."
+   - **Capacity** stays the same.
+2. **Slicing the Start (`s[2:]`)**:
+   - **Destructive.** You move the pointer forward.
+   - **Capacity shrinks.** You cannot look back to the left.
+
+## 24. The "Nil" Slice (No Crash!)
+
+In Node/Python, `null` lists cause crashes. In Go, a `nil` slice is useful.
+
+```go
+var s []int // s is nil (Pointer is nil)
+```
+
+- **It behaves like an empty list:**
+  - `len(s)` returns `0` (Safe).
+  - `for range s` runs 0 times (Safe).
+  - `append(s, 1)` works (Safe - automatically creates the array).
+
+**Note on Printing:** `fmt.Println(s)` will print `[]` (a convenient lie). To see if it's truly nil, use `fmt.Printf("%#v", s)` which prints `[]int(nil)`.
+
+## 25. Maps: The "Read Safe, Write Panic" Trap
+
+Maps in Go are similar to Objects/Dictionaries in other languages, but they have a unique relationship with `nil`.
+
+- **Declaration:** `var m map[string]int` (Defaults to `nil`).
+- **Initialization:** `m = make(map[string]int)` (Ready to use).
+
+### The Golden Rule of Maps
+
+Just like Slices, a `nil` map has no memory allocated. However, the behavior differs for reading vs. writing.
+
+| Operation  | On `nil` Map                 | On Initialized Map |
+| :--------- | :--------------------------- | :----------------- |
+| **Read**   | ✅ Safe (Returns Zero Value) | ✅ Returns value   |
+| **Write**  | ❌ **PANIC** (Crash)         | ✅ Works           |
+| **Delete** | ✅ Safe (No-op)              | ✅ Works           |
+
+**The "Write" Crash:**
+
+```go
+var m map[string]int // m is nil
+// fmt.Println(m["key"]) // ✅ Prints 0 (Safe!)
+// m["key"] = 10         // ❌ PANIC! assignment to entry in nil map
+```
+
+**Fix:** Always use `make()` or a literal `map[string]int{}` before writing.
+
+## 26. Cheat Sheet: Zero Values vs. Nil
+
+In Go, every variable has a default value the moment it is declared. It is critical to know which ones start as "Empty Boxes" (Zero Value) and which ones start as "Missing Boxes" (Nil).
+
+### 1. Value Types (Default to "Zero Value")
+
+These exist immediately. You can use them safely right away.
+
+| Type                | Default Value        | Example        |
+| :------------------ | :------------------- | :------------- |
+| **Integer / Float** | `0`                  | `var i int`    |
+| **Boolean**         | `false`              | `var b bool`   |
+| **String**          | `""` (Empty string)  | `var s string` |
+| **Array**           | `[0, 0...]`          | `var a [3]int` |
+| **Struct**          | `{}` (Fields zeroed) | `var u User`   |
+
+### 2. Reference Types (Default to `nil`)
+
+These are just pointers/labels. They don't point to anything yet.
+
+| Type          | Default Value | Danger Zone ⚠️                         |
+| :------------ | :------------ | :------------------------------------- |
+| **Slice**     | `nil`         | Safe to read/append.                   |
+| **Map**       | `nil`         | **CRASH** if you write.                |
+| **Pointer**   | `nil`         | **CRASH** if you dereference (`*p`).   |
+| **Interface** | `nil`         | **CRASH** if you call a method.        |
+| **Function**  | `nil`         | **CRASH** if you call it.              |
+| **Channel**   | `nil`         | **BLOCKS** forever (deadlock) if used. |
+
+**Mental Model:**
+
+- **Zero Value:** "I have a box, but it's empty."
+- **Nil:** "I have a label, but no box."
