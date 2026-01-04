@@ -500,8 +500,6 @@ Just like functions, the visibility of struct fields is controlled entirely by *
 | **Uppercase** | **Exported (Public)**    | Visible to **other packages**. Required for JSON/XML encoding. |
 | **Lowercase** | **Unexported (Private)** | Visible **ONLY** inside the same package.                      |
 
-Here is a section you can add to your `README.md`. I’ve titled it to capture exactly what we discussed: the difference between "Zero Value" and "No Value," and why Go forces you to dance with pointers.
-
 ## 21. Handling Optional Values (The `nil` vs. `0` Dilemma)
 
 In JavaScript/Node, you often rely on values being "Falsy" (`0`, `null`, `undefined`, `false`) to check if data exists. In Go, this concept **does not exist**.
@@ -694,9 +692,30 @@ These are just pointers/labels. They don't point to anything yet.
 - **Zero Value:** "I have a box, but it's empty."
 - **Nil:** "I have a label, but no box."
 
-Based on our discussion, here are the new sections to add to your `README.md`. These cover the "Best Practices" for naming and the deep dive into Arrays vs. Slices that we just covered.
+Here is a clean, formatted section ready to copy-paste directly into your documentation.
 
-## 27. File & Directory Naming Conventions
+## 27. Reference Types & Nullability
+
+In Go, **Reference Types** (Slices, Maps, Channels, Interfaces) are inherently nullable. You generally **should not** use a pointer (e.g., `*[]string` or `*map[string]int`) to make them optional.
+
+### Why? (Under the Hood)
+
+Reference types are already "descriptors" or pointers to underlying data structures. Adding a pointer to them creates unnecessary indirection (a pointer to a pointer).
+
+- **Maps & Channels:** act as pure pointers. Their zero value is `nil`.
+- **Slices:** act as a tiny struct containing a pointer to an array. If that internal pointer is missing, the slice is considered `nil`.
+
+### The "Do I Need a Pointer?" Cheat Sheet
+
+| Type Category  | Examples               | Zero Value   | Needs `*` for Nullable? | Best Practice                                                     |
+| -------------- | ---------------------- | ------------ | ----------------------- | ----------------------------------------------------------------- |
+| **Primitives** | `int`, `float`, `bool` | `0`, `false` | **YES**                 | Use `*int` to distinguish `0` from `nil`.                         |
+| **Structs**    | `User`, `Config`       | `{}` (Empty) | **YES**                 | Use `*User` to avoid creating empty objects.                      |
+| **Strings**    | `string`               | `""`         | **YES**                 | Use `*string` only if `""` is a valid value different from `nil`. |
+| **Slices**     | `[]T`                  | `nil`        | **NO** 🚫               | `*[]T` is redundant and awkward to use.                           |
+| **Maps**       | `map[K]V`              | `nil`        | **NO** 🚫               | `*map` is a code smell.                                           |
+
+## 28. File & Directory Naming Conventions
 
 Go is opinionated about naming. Here is the standard way to name your files and folders.
 
