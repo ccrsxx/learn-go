@@ -724,3 +724,47 @@ Go is opinionated about naming. Here is the standard way to name your files and 
 | **Source Files**    | `snake_case`                  | `user_profile.go`, `api_test.go` | Required for `_test.go` and `_windows.go` build tags to work.                   |
 | **Package Folders** | `snake_case` (or single word) | `json_parser/`, `handlers/`      | Package name must match folder name. `kebab-case` is invalid in `package name`. |
 | **Project Root**    | `kebab-case`                  | `github.com/user/learn-go`       | Standard for repositories.                                                      |
+
+## 29. Methods are just Functions (Under the Hood)
+
+Mathematically, a method is just a function where the first argument (the "receiver") is moved to a special position before the function name.
+
+- **Syntax:** `func (v Vertex) Abs()`
+- **Reality:** The compiler sees `func Vertex_Abs(v Vertex)`.
+- **Why use them?** They enable "Dot Syntax" (`v.Abs()`) and are required to satisfy Interfaces.
+
+## 30. Pointer Receiver vs. Value Receiver
+
+When defining a method, you must choose how the data is passed:
+
+- **Pointer Receiver `(v *Vertex)`:** Use this if you need to **modify** the data or if the struct is **large** (to avoid copying). This is the most common default.
+- **Value Receiver `(v Vertex)`:** Use this for **read-only** behavior on small, primitive-like data (e.g., Coordinates, Time). You get a copy, so changes inside the method are lost.
+
+## 31. The "Consistency" Rule (Google Style)
+
+If **any** method on a struct needs a pointer receiver (for mutation), then **ALL** methods on that struct should use pointer receivers.
+
+- **Why?** It prevents confusion and ensures the type always behaves like a reference.
+- **Tip:** When in doubt, default to **Pointer (`*`)**.
+
+## 32. Method Syntactic Sugar (The "Auto-Fix")
+
+Go methods are flexible, whereas standard functions are strict.
+
+- **Auto-Reference:** If you call a Pointer Method on a Value Variable (`v.Scale()`), Go automatically injects `&v`.
+- **Auto-Dereference:** If you call a Value Method on a Pointer Variable (`p.Abs()`), Go automatically injects `*p`.
+- **Contrast:** Standalone functions (e.g., `ScaleFunc(v)`) will **crash** if the types don't match exactly.
+
+## 33. Extending Non-Struct Types
+
+You can attach methods to almost any type, not just structs, by creating a **Type Definition**.
+
+- **Example:** `type MyFloat float64` allows you to write `func (f MyFloat) Abs()`.
+- **Use Case:** Adding logic to basic values, like formatted printing for status codes (Enums).
+
+## 34. The "Type Ownership" Rule
+
+You can only define a method for a type that is defined in the **same package**.
+
+- **Allowed:** Defining `MyUser` in `main` and adding methods to it.
+- **Forbidden:** You cannot add methods to standard types (like `int`) or types from other libraries (like `time.Time`) directly. You must "wrap" or "alias" them first.
