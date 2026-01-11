@@ -769,10 +769,6 @@ You can only define a method for a type that is defined in the **same package**.
 - **Allowed:** Defining `MyUser` in `main` and adding methods to it.
 - **Forbidden:** You cannot add methods to standard types (like `int`) or types from other libraries (like `time.Time`) directly. You must "wrap" or "alias" them first.
 
-You are absolutely right. That detail about the **Zero Value fallback** is the "magic" that makes the `ok` idiom work without crashing. It is a critical mental model to have.
-
-Here is the updated README block (Sections 35–39), now including that specific detail in Section 38 so you never forget why it's safe.
-
 ## 35. Interfaces: Implicit Implementation
 
 In Java or TypeScript, you explicitly say `class User implements Stringer`. In Go, you don't.
