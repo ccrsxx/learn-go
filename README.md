@@ -768,3 +768,127 @@ You can only define a method for a type that is defined in the **same package**.
 
 - **Allowed:** Defining `MyUser` in `main` and adding methods to it.
 - **Forbidden:** You cannot add methods to standard types (like `int`) or types from other libraries (like `time.Time`) directly. You must "wrap" or "alias" them first.
+
+You are absolutely right. That detail about the **Zero Value fallback** is the "magic" that makes the `ok` idiom work without crashing. It is a critical mental model to have.
+
+Here is the updated README block (Sections 35–39), now including that specific detail in Section 38 so you never forget why it's safe.
+
+## 35. Interfaces: Implicit Implementation
+
+In Java or TypeScript, you explicitly say `class User implements Stringer`. In Go, you don't.
+
+**If you have the methods, you are the interface.**
+
+- **Definition:** An interface is just a set of method signatures.
+- **Implementation:** A type implements an interface by implementing its methods. There is no `implements` keyword.
+
+```go
+type Abser interface {
+    Abs() float64
+}
+
+type MyFloat float64
+
+// This method means MyFloat AUTOMATICALLY implements Abser
+func (f MyFloat) Abs() float64 {
+    return float64(f)
+}
+```
+
+## 36. The Interface "Tuple" & The Nil Trap
+
+This is the most dangerous concept for beginners. An interface value is effectively a tuple of **(Type, Value)**.
+
+### The "Two Nils" Problem
+
+There is a huge difference between an **Empty Interface** and an **Interface holding a Nil Pointer**.
+
+| Scenario            | Code       | Internal Tuple `(Type, Value)` | Call `i.Method()` | Why?                                                        |
+| ------------------- | ---------- | ------------------------------ | ----------------- | ----------------------------------------------------------- |
+| **1. Unassigned**   | `var i I`  | `(nil, nil)`                   | **💥 CRASH**      | No Type info. Go doesn't know which function to call.       |
+| **2. Assigned Nil** | `var t *T` | `(*T, nil)`                    | **✅ WORKS**      | Type is `*T`. Go finds the function and passes `nil` to it. |
+
+### Why Scenario 2 Works (The "Manual on the Wall")
+
+In Go, methods are not attached to the object (like JS). They are attached to the **Type**.
+When you call `i.Method()` in Scenario 2:
+
+1. Go sees the type `*T`.
+2. Go looks up the "Instruction Manual" (code) for `*T`.
+3. Go runs the function, passing `nil` as the argument.
+
+**Rule:** It is safe to call a method on a `nil` pointer, as long as the method itself handles the `nil` safely (e.g., `if t == nil { return }`).
+
+## 37. The Empty Interface (`any`)
+
+The interface with zero methods is called the **Empty Interface**: `interface{}`.
+Since Go 1.18, it has an alias: **`any`**.
+
+- **Logic:** Every type has at least zero methods. Therefore, `any` can hold **anything**.
+- **The Trap:** It works like `any` in TypeScript, but worse. Once you put data in, **you lose all type info**. You cannot call methods or do math until you pull it back out.
+
+```go
+var i any = "hello"
+// i.len() // ❌ Error! 'any' has no methods.
+```
+
+**Use Case:** Only use `any` when you truly don't know the data structure (e.g., `fmt.Println`, JSON parsing).
+
+## 38. Type Assertions: Getting Data Out
+
+To get the value back out of an interface, you must use a **Type Assertion**.
+
+`t := i.(T)`
+
+### The "Comma OK" Idiom (Safety First)
+
+This is a special syntax that changes behavior based on how many variables you assign.
+
+| Syntax          | Code                  | Behavior on Mismatch                       |
+| --------------- | --------------------- | ------------------------------------------ |
+| **1 Variable**  | `s := i.(string)`     | **💥 PANIC!** (App crashes immediately)    |
+| **2 Variables** | `s, ok := i.(string)` | **✅ SAFE.** `ok` is `false`, `s` is `""`. |
+
+### The "Magic" of Safety (Why it doesn't crash)
+
+When you use the 2-variable form, Go **guarantees** that the value variable (`s`) will be populated with the **Zero Value** of that type if the assertion fails.
+
+- **If Match:** `s` = "Actual String", `ok` = `true`
+- **If Fail:** `s` = `""` (Empty String), `ok` = `false`
+
+Because the variable is always valid (never "undefined"), the program continues safely without panic.
+
+```go
+var i any = 123
+
+s, ok := i.(string)
+if !ok {
+    // 's' is now safely "", so we don't crash.
+    fmt.Println("This is not a string!")
+}
+```
+
+## 39. Type Switches
+
+If you need to check multiple types, don't chain `if/else` assertions. Use a **Type Switch**.
+
+It gives you a special variable `v` that **morphs** into the correct type inside each case.
+
+```go
+func do(i any) {
+    switch v := i.(type) {
+    case int:
+        // v is an INT here. We can do math.
+        fmt.Printf("Twice %v is %v\n", v, v*2)
+    case string:
+        // v is a STRING here. We can check length.
+        fmt.Printf("String length: %v\n", len(v))
+    default:
+        // v is still ANY (interface{}) here.
+        // We know nothing about it except it's not an int or string.
+        fmt.Printf("Unknown type: %T\n", v)
+    }
+}
+```
+
+**Quirk:** In the `default` case, `v` maintains the original value but remains type `interface{}`. You cannot use type-specific methods on it yet.
