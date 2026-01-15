@@ -298,7 +298,7 @@ When using `fmt.Printf`, you need to use specific "verbs" (placeholders) for dif
 | **`%-5s`** | Left-align (pad right with spaces) | `Go`             |
 | **`%05d`** | Pad number with Zeros (`12`)       | `00012`          |
 
-## 16. Naked Returns (The "Magic" Return)
+## 17. Naked Returns (The "Magic" Return)
 
 Go allows "Naked Returns" where you define the return variables in the function signature.
 
@@ -313,7 +313,7 @@ func split(sum int) (x, y int) { // x and y are initialized to 0 here
 
 It is best idea to not used it at all, because it can make code less readable.
 
-## 17. Variable Shadowing
+## 18. Variable Shadowing
 
 In Go, you can declare a new variable with the same name as an existing one within a new scope (block). This is called **Shadowing**.
 
@@ -333,7 +333,7 @@ func main() {
 1. **Type Conversion:** `data := []byte(data)` (Transforming a variable while keeping the name).
 1. **Safety:** protecting an outer variable from being mutated inside a loop or goroutine (pre-Go 1.22).
 
-## 18. Truthy and Falsy Values
+## 19. Truthy and Falsy Values
 
 Go does not have "truthy" or "falsy" values like JavaScript or Python. Every condition must explicitly evaluate to a boolean (`true` or `false`).
 
@@ -346,7 +346,7 @@ Go does not have "truthy" or "falsy" values like JavaScript or Python. Every con
 | **Slice/Map** | `if (arr)`        | `if len(arr) > 0` (Check contents) or `if arr != nil` (Check existence) |
 | **Error**     | `if (err)`        | `if err != nil`                                                         |
 
-## 16. If with a Short Statement
+## 20. If with a Short Statement
 
 Go allows you to execute a short statement **before** the condition in an `if` block. It's available only within the scope of that `if` block and any associated `else` blocks.
 
@@ -370,7 +370,7 @@ func pow(x, n, lim float64) float64 {
 }
 ```
 
-## 17. Switch Statements: Safe by Default
+## 21. Switch Statements: Safe by Default
 
 Go's `switch` statement works differently than JavaScript's or C's. It is safer and more powerful.
 
@@ -425,7 +425,7 @@ default:
 }
 ```
 
-## 18. Defer: The Cleanup Scheduler
+## 22. Defer: The Cleanup Scheduler
 
 Go uses defer instead of try/finally. It schedules a function call to run immediately before the surrounding function returns.
 
@@ -467,7 +467,7 @@ defer fmt.Println("Third") // Runs 1st
 // Output: Third, Second, First
 ```
 
-## 19. Pointers: References to Values
+## 23. Pointers: References to Values
 
 Pointers in Go are variables that store the memory address of another variable. They allow you to reference and manipulate the original value directly.
 
@@ -491,7 +491,7 @@ fmt.Println(*p) // Dereference p to get the value of i (prints 42)
 fmt.Println(i)  // Now i is 21
 ```
 
-## 20. Structs: Public vs. Private Fields
+## 24. Structs: Public vs. Private Fields
 
 Just like functions, the visibility of struct fields is controlled entirely by **Capitalization**.
 
@@ -500,7 +500,7 @@ Just like functions, the visibility of struct fields is controlled entirely by *
 | **Uppercase** | **Exported (Public)**    | Visible to **other packages**. Required for JSON/XML encoding. |
 | **Lowercase** | **Unexported (Private)** | Visible **ONLY** inside the same package.                      |
 
-## 21. Handling Optional Values (The `nil` vs. `0` Dilemma)
+## 25. Handling Optional Values (The `nil` vs. `0` Dilemma)
 
 In JavaScript/Node, you often rely on values being "Falsy" (`0`, `null`, `undefined`, `false`) to check if data exists. In Go, this concept **does not exist**.
 
@@ -572,7 +572,7 @@ if u.Age != nil {
 - Use **`int`** when the value is required and `0` is a valid number.
 - Use **`*int`** when you strictly need to know the difference between "Zero" and "Nothing."
 
-## 22. Arrays vs. Slices: The "Fixed" vs. "Dynamic"
+## 26. Arrays vs. Slices: The "Fixed" vs. "Dynamic"
 
 Coming from JavaScript/Python, you usually only have "Lists." Go splits this into two concepts.
 
@@ -597,7 +597,7 @@ A "Window" looking at an underlying array.
 | **Resize**     | ❌ Impossible         | ✅ Dynamic (`append`)    |
 | **Assignment** | 🐢 Copies Data (Slow) | 🐇 Copies Pointer (Fast) |
 
-## 23. Slice Internals: Length vs. Capacity
+## 27. Slice Internals: Length vs. Capacity
 
 A slice is just a small struct with 3 fields: **Pointer**, **Length**, and **Capacity**.
 
@@ -616,7 +616,7 @@ s = s[:4] // We can "resurrect" the data because Cap is still 6.
    - **Destructive.** You move the pointer forward.
    - **Capacity shrinks.** You cannot look back to the left.
 
-## 24. The "Nil" Slice (No Crash!)
+## 28. The "Nil" Slice (No Crash!)
 
 In Node/Python, `null` lists cause crashes. In Go, a `nil` slice is useful.
 
@@ -631,7 +631,7 @@ var s []int // s is nil (Pointer is nil)
 
 **Note on Printing:** `fmt.Println(s)` will print `[]` (a convenient lie). To see if it's truly nil, use `fmt.Printf("%#v", s)` which prints `[]int(nil)`.
 
-## 25. Maps: The "Read Safe, Write Panic" Trap
+## 29. Maps: The "Read Safe, Write Panic" Trap
 
 Maps in Go are similar to Objects/Dictionaries in other languages, but they have a unique relationship with `nil`.
 
@@ -658,7 +658,7 @@ var m map[string]int // m is nil
 
 **Fix:** Always use `make()` or a literal `map[string]int{}` before writing.
 
-## 26. Cheat Sheet: Zero Values vs. Nil
+## 30. Cheat Sheet: Zero Values vs. Nil
 
 In Go, every variable has a default value the moment it is declared. It is critical to know which ones start as "Empty Boxes" (Zero Value) and which ones start as "Missing Boxes" (Nil).
 
@@ -694,7 +694,7 @@ These are just pointers/labels. They don't point to anything yet.
 
 Here is a clean, formatted section ready to copy-paste directly into your documentation.
 
-## 27. Reference Types & Nullability
+## 31. Reference Types & Nullability
 
 In Go, **Reference Types** (Slices, Maps, Channels, Interfaces) are inherently nullable. You generally **should not** use a pointer (e.g., `*[]string` or `*map[string]int`) to make them optional.
 
@@ -715,7 +715,7 @@ Reference types are already "descriptors" or pointers to underlying data structu
 | **Slices**     | `[]T`                  | `nil`        | **NO** 🚫               | `*[]T` is redundant and awkward to use.                           |
 | **Maps**       | `map[K]V`              | `nil`        | **NO** 🚫               | `*map` is a code smell.                                           |
 
-## 28. File & Directory Naming Conventions
+## 32. File & Directory Naming Conventions
 
 Go is opinionated about naming. Here is the standard way to name your files and folders.
 
@@ -725,7 +725,7 @@ Go is opinionated about naming. Here is the standard way to name your files and 
 | **Package Folders** | `snake_case` (or single word) | `json_parser/`, `handlers/`      | Package name must match folder name. `kebab-case` is invalid in `package name`. |
 | **Project Root**    | `kebab-case`                  | `github.com/user/learn-go`       | Standard for repositories.                                                      |
 
-## 29. Methods are just Functions (Under the Hood)
+## 33. Methods are just Functions (Under the Hood)
 
 Mathematically, a method is just a function where the first argument (the "receiver") is moved to a special position before the function name.
 
@@ -733,21 +733,21 @@ Mathematically, a method is just a function where the first argument (the "recei
 - **Reality:** The compiler sees `func Vertex_Abs(v Vertex)`.
 - **Why use them?** They enable "Dot Syntax" (`v.Abs()`) and are required to satisfy Interfaces.
 
-## 30. Pointer Receiver vs. Value Receiver
+## 34. Pointer Receiver vs. Value Receiver
 
 When defining a method, you must choose how the data is passed:
 
 - **Pointer Receiver `(v *Vertex)`:** Use this if you need to **modify** the data or if the struct is **large** (to avoid copying). This is the most common default.
 - **Value Receiver `(v Vertex)`:** Use this for **read-only** behavior on small, primitive-like data (e.g., Coordinates, Time). You get a copy, so changes inside the method are lost.
 
-## 31. The "Consistency" Rule (Google Style)
+## 35. The "Consistency" Rule (Google Style)
 
 If **any** method on a struct needs a pointer receiver (for mutation), then **ALL** methods on that struct should use pointer receivers.
 
 - **Why?** It prevents confusion and ensures the type always behaves like a reference.
 - **Tip:** When in doubt, default to **Pointer (`*`)**.
 
-## 32. Method Syntactic Sugar (The "Auto-Fix")
+## 36. Method Syntactic Sugar (The "Auto-Fix")
 
 Go methods are flexible, whereas standard functions are strict.
 
@@ -755,21 +755,21 @@ Go methods are flexible, whereas standard functions are strict.
 - **Auto-Dereference:** If you call a Value Method on a Pointer Variable (`p.Abs()`), Go automatically injects `*p`.
 - **Contrast:** Standalone functions (e.g., `ScaleFunc(v)`) will **crash** if the types don't match exactly.
 
-## 33. Extending Non-Struct Types
+## 37. Extending Non-Struct Types
 
 You can attach methods to almost any type, not just structs, by creating a **Type Definition**.
 
 - **Example:** `type MyFloat float64` allows you to write `func (f MyFloat) Abs()`.
 - **Use Case:** Adding logic to basic values, like formatted printing for status codes (Enums).
 
-## 34. The "Type Ownership" Rule
+## 38. The "Type Ownership" Rule
 
 You can only define a method for a type that is defined in the **same package**.
 
 - **Allowed:** Defining `MyUser` in `main` and adding methods to it.
 - **Forbidden:** You cannot add methods to standard types (like `int`) or types from other libraries (like `time.Time`) directly. You must "wrap" or "alias" them first.
 
-## 35. Interfaces: Implicit Implementation
+## 39. Interfaces: Implicit Implementation
 
 In Java or TypeScript, you explicitly say `class User implements Stringer`. In Go, you don't.
 
@@ -791,7 +791,7 @@ func (f MyFloat) Abs() float64 {
 }
 ```
 
-## 36. The Interface "Tuple" & The Nil Trap
+## 40. The Interface "Tuple" & The Nil Trap
 
 This is the most dangerous concept for beginners. An interface value is effectively a tuple of **(Type, Value)**.
 
@@ -815,7 +815,7 @@ When you call `i.Method()` in Scenario 2:
 
 **Rule:** It is safe to call a method on a `nil` pointer, as long as the method itself handles the `nil` safely (e.g., `if t == nil { return }`).
 
-## 37. The Empty Interface (`any`)
+## 41. The Empty Interface (`any`)
 
 The interface with zero methods is called the **Empty Interface**: `interface{}`.
 Since Go 1.18, it has an alias: **`any`**.
@@ -830,7 +830,7 @@ var i any = "hello"
 
 **Use Case:** Only use `any` when you truly don't know the data structure (e.g., `fmt.Println`, JSON parsing).
 
-## 38. Type Assertions: Getting Data Out
+## 42. Type Assertions: Getting Data Out
 
 To get the value back out of an interface, you must use a **Type Assertion**.
 
@@ -864,7 +864,7 @@ if !ok {
 }
 ```
 
-## 39. Type Switches
+## 43. Type Switches
 
 If you need to check multiple types, don't chain `if/else` assertions. Use a **Type Switch**.
 
@@ -889,7 +889,7 @@ func do(i any) {
 
 **Quirk:** In the `default` case, `v` maintains the original value but remains type `interface{}`. You cannot use type-specific methods on it yet.
 
-## 40. Stringers: The `toString()` of Go
+## 44. Stringers: The `toString()` of Go
 
 In JavaScript, every object inherits `.toString()`. In Go, you opt-in by implementing the `fmt.Stringer` interface.
 
@@ -923,7 +923,7 @@ func (p Person) String() string {
 }
 ```
 
-## 41. Errors: Values, Not Exceptions
+## 45. Errors: Values, Not Exceptions
 
 This is the biggest culture shock coming from TypeScript.
 
@@ -958,7 +958,7 @@ if err != nil {
 }
 ```
 
-## 42. Readers: The "Bucket" Metaphor
+## 46. Readers: The "Bucket" Metaphor
 
 The `io.Reader` interface is fundamental to how Go handles I/O (Files, HTTP, Streams).
 
@@ -979,7 +979,7 @@ Read(p []byte) (n int, err error)
 4. You process those `n` bytes.
 5. Repeat until `err == io.EOF`.
 
-## 43. The Middleware Pattern (Rot13)
+## 47. The Middleware Pattern (Rot13)
 
 A common Go pattern is wrapping one Reader inside another to modify the stream on the fly. This is how **Gzip** (Compression) and **TLS** (Encryption) work.
 
@@ -994,7 +994,7 @@ A common Go pattern is wrapping one Reader inside another to modify the stream o
 
 **Key Concept:** `io.Copy` never looks at the data. It just moves bytes. The transformation happens in the middle.
 
-## 44. Images: Paint by Numbers
+## 48. Images: Paint by Numbers
 
 In Go, an Image isn't necessarily a file in memory. It is any type that can answer three questions:
 
@@ -1004,7 +1004,7 @@ In Go, an Image isn't necessarily a file in memory. It is any type that can answ
 
 This allows you to create **Procedural Images** (like Fractals) that take up zero RAM because the pixels are calculated using math (e.g., `x ^ y`) only when they are requested.
 
-## 45. Design Pattern Quirk: Methods vs. Config Objects
+## 49. Design Pattern Quirk: Methods vs. Config Objects
 
 Coming from JavaScript, you might be tempted to pass "Configuration Objects" with functions inside them.
 
