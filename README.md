@@ -1029,3 +1029,106 @@ func (i Image) At(x, y int) color.Color { ... }
 
 - **Use Structs with Function Fields** (The JS way) for **Configuration** or **One-off logic** (e.g., `http.Server` error handler).
 - **Use Interfaces & Methods** (The Go way) for **Core Data Types** (e.g., `Image`, `Reader`, `User`). This separates **Data** (Struct) from **Behavior** (Methods).
+
+## 50. Generics: Type Parameters
+
+Added in Go 1.18, Generics allow you to write functions and types that work with **any** type, similar to TypeScript's `<T>`.
+
+**Syntax:** `[T Constraint]`
+
+```go
+// T is the placeholder name
+// "comparable" is the rule (constraint)
+func Index[T comparable](s []T, x T) int {
+    for i, v := range s {
+        if v == x {
+            return i
+        }
+    }
+    return -1
+}
+```
+
+### Type Inference
+
+You rarely need to specify the type explicitly. Go figures it out based on the arguments.
+
+```go
+// 1. Explicit (Verbose)
+Index[int]([]int{1, 2}, 1)
+
+// 2. Implicit (Standard)
+Index([]int{1, 2}, 1) // Compiler knows T is 'int'
+```
+
+## 51. Constraints: `any` vs `comparable`
+
+This is the most important concept in Go generics. You must **whitelist** what your generic type can do.
+
+### 1. `any` (The "Do Nothing" Constraint)
+
+- **What it is:** An alias for `interface{}`.
+- **What it allows:** Passing data around.
+- **What it forbids:** **Operators.** You cannot use `==`, `!=`, `+`, `-`, `>`, `<`.
+- **Use Case:** Containers (Lists, Trees) where you don't need to inspect the value.
+
+### 2. `comparable` (The "Equality" Constraint)
+
+- **What it is:** A built-in interface for types that support `==` and `!=`.
+- **What it includes:** Booleans, Numbers, Strings, Pointers, Structs, Arrays, Channels.
+- **What it EXCLUDES:** **Slices, Maps, Functions.** (Because `slice1 == slice2` is illegal in Go).
+
+## 52. The "Comparison" Quirk (Go vs TS)
+
+In TypeScript, you can write `a === b` for absolutely anything. In Go, the `comparable` constraint is strict.
+
+| Code     | `[T any]`    | `[T comparable]` | Why?                                                  |
+| -------- | ------------ | ---------------- | ----------------------------------------------------- |
+| `a == b` | ❌ **Error** | ✅ **OK**        | `any` might be a Map (which crashes on `==`).         |
+| `a != b` | ❌ **Error** | ✅ **OK**        | Same reason.                                          |
+| `a > b`  | ❌ **Error** | ❌ **Error**     | `comparable` **ONLY** guarantees Equality, not Order. |
+
+**The Paradox:**
+
+- If you use `[T comparable]`, you **cannot pass a Map** (Compiler Error).
+- If you use `[T any]`, you **can pass a Map**, but you **cannot use `==**` inside the function.
+
+## 53. Generic Structs
+
+You can define types that take parameters, just like functions.
+
+```go
+// A generic linked list node
+type List[T any] struct {
+    next *List[T] // Recursive pointer
+    val  T
+}
+```
+
+### The Receiver Syntax
+
+When defining methods on a generic struct, you must repeat the type parameter in the receiver.
+
+```go
+// Correct: (l *List[T])
+func (l *List[T]) Push(value T) {
+    // ...
+}
+
+// ❌ Incorrect: (l *List)
+```
+
+## 54. Custom Constraints (Unions)
+
+If you want to do **Math** (`+`, `*`), neither `any` nor `comparable` will work. You must define a **Union Interface**.
+
+```go
+// Only allows types that support math
+type Number interface {
+    int | float64 | uint
+}
+
+func Add[T Number](a, b T) T {
+    return a + b // ✅ Allowed because all types in Union support '+'
+}
+```
