@@ -888,3 +888,144 @@ func do(i any) {
 ```
 
 **Quirk:** In the `default` case, `v` maintains the original value but remains type `interface{}`. You cannot use type-specific methods on it yet.
+
+## 40. Stringers: The `toString()` of Go
+
+In JavaScript, every object inherits `.toString()`. In Go, you opt-in by implementing the `fmt.Stringer` interface.
+
+```go
+type Stringer interface {
+    String() string
+}
+```
+
+If you define a `String()` method, `fmt.Println` will automatically call it instead of printing the raw struct.
+
+### The Infinite Loop Trap ⚠️
+
+When implementing `String()`, do not pass the object itself back into `fmt.Sprintf` with `%v`, or it will call `String()` again forever.
+
+**Bad:**
+
+```go
+func (p Person) String() string {
+    // 💥 CRASH: Sprintf calls p.String(), which calls Sprintf...
+    return fmt.Sprintf("Person: %v", p)
+}
+```
+
+**Good:**
+
+```go
+func (p Person) String() string {
+    // Safe: We only print specific fields
+    return fmt.Sprintf("Person: %s (%d)", p.Name, p.Age)
+}
+```
+
+## 41. Errors: Values, Not Exceptions
+
+This is the biggest culture shock coming from TypeScript.
+
+- **Node/TS:** You `throw` an Error (Grenade) 💣. It blows up the stack until a `catch` block catches it.
+- **Go:** You `return` an Error (Rock) 🪨. The function hands it to you as a normal return value. You must check it immediately.
+
+### Extracting Error Data (Type Assertion)
+
+Since `error` is just an interface, it's a "black box." To see if it contains custom data (like a timestamp or code), you must cast it.
+
+**TypeScript:**
+
+```typescript
+try {
+  run();
+} catch (err) {
+  if (err instanceof MyError) {
+    console.log(err.when);
+  }
+}
+```
+
+**Go:**
+
+```go
+err := run()
+if err != nil {
+    // Check: "Is this error actually a *MyError pointer?"
+    if e, ok := err.(*MyError); ok {
+        fmt.Println(e.When) // ✅ Access fields safely
+    }
+}
+```
+
+## 42. Readers: The "Bucket" Metaphor
+
+The `io.Reader` interface is fundamental to how Go handles I/O (Files, HTTP, Streams).
+
+```go
+Read(p []byte) (n int, err error)
+```
+
+### The difference from `fs.readFile`
+
+- **Node (`fs.readFile`):** Loads the **entire** 50GB file into RAM, then gives it to you.
+- **Go (`Reader`):** You give it a small "Bucket" (e.g., 32KB). It fills the bucket, hands it back, and waits for you to ask for more.
+
+**The Loop Logic:**
+
+1. You hand the Reader an empty slice `p` (The Bucket).
+2. Reader fills it with data.
+3. Reader tells you `n` (how many bytes it poured).
+4. You process those `n` bytes.
+5. Repeat until `err == io.EOF`.
+
+## 43. The Middleware Pattern (Rot13)
+
+A common Go pattern is wrapping one Reader inside another to modify the stream on the fly. This is how **Gzip** (Compression) and **TLS** (Encryption) work.
+
+**The Flow:**
+`Your Code` <— `Rot13Reader` <— `StringsReader`
+
+1. **`io.Copy`** (The Truck Driver): Asks `Rot13Reader` for data.
+2. **`Rot13Reader`**: Asks `StringsReader` for data.
+3. **`StringsReader`**: "Here is encrypted text: 'Lbh...'".
+4. **`Rot13Reader`**: "Hold on." (Modifies the bytes in place: 'L' -> 'Y'). "Okay, here is 'You...'".
+5. **`io.Copy`**: Delivers the clean data to `os.Stdout`.
+
+**Key Concept:** `io.Copy` never looks at the data. It just moves bytes. The transformation happens in the middle.
+
+## 44. Images: Paint by Numbers
+
+In Go, an Image isn't necessarily a file in memory. It is any type that can answer three questions:
+
+1. **`Bounds()`**: How big is the canvas?
+2. **`ColorModel()`**: What colors do you use?
+3. **`At(x, y)`**: **"What color is at this pixel?"**
+
+This allows you to create **Procedural Images** (like Fractals) that take up zero RAM because the pixels are calculated using math (e.g., `x ^ y`) only when they are requested.
+
+## 45. Design Pattern Quirk: Methods vs. Config Objects
+
+Coming from JavaScript, you might be tempted to pass "Configuration Objects" with functions inside them.
+
+**The JS Pattern (Flexible but Memory Heavy):**
+
+```javascript
+// A new closure is created for every instance!
+const myImage = {
+  at: (x, y) => 'blue'
+};
+```
+
+**The Go Pattern (Strict but Efficient):**
+
+```go
+// The method code exists ONCE in memory.
+// All 10,000 instances share the same instruction set.
+func (i Image) At(x, y int) color.Color { ... }
+```
+
+### The Rule of Thumb
+
+- **Use Structs with Function Fields** (The JS way) for **Configuration** or **One-off logic** (e.g., `http.Server` error handler).
+- **Use Interfaces & Methods** (The Go way) for **Core Data Types** (e.g., `Image`, `Reader`, `User`). This separates **Data** (Struct) from **Behavior** (Methods).

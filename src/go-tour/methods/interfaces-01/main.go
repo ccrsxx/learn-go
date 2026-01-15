@@ -22,6 +22,10 @@ func (v *Vertex) Abs() float64 {
 	return math.Sqrt(v.X*v.X + v.Y*v.Y)
 }
 
+func (v *Vertex) Emilia() string {
+	return "Emilia is the best girl"
+}
+
 type Abser interface {
 	Abs() float64
 }
