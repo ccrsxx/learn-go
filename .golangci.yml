@@ -6,6 +6,5 @@ linters:
     - wsl
     - mnd
     - revive
-    - depguards
     - forbidigo
     - gomoddirectives
