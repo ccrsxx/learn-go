@@ -1132,3 +1132,124 @@ func Add[T Number](a, b T) T {
     return a + b // ✅ Allowed because all types in Union support '+'
 }
 ```
+
+## 55. Goroutines: The "Fire and Forget"
+
+A goroutine is a function that runs concurrently with other functions. It is not a 1-to-1 mapping with OS threads; Go's runtime manages thousands of goroutines across a few real threads.
+
+- **The `go` keyword**: Simply adding `go` before a function call launches it into the background.
+- **The "Main Goroutine" Rule**: The `main` function runs in a special "Main Goroutine." If this function finishes, the program exits immediately, killing all background goroutines, even if they aren't finished.
+
+```go
+go say("world") // Launches a background worker
+say("hello")    // Runs in the main goroutine
+```
+
+## 56. Channels: The Pipe Metaphor
+
+Channels are the "pipes" that allow goroutines to exchange data without fighting over memory locks.
+
+- **Syntax**:
+- `ch := make(chan int)`: Create a channel.
+- `ch <- v`: **Send** (Write to pipe).
+- `v := <-ch`: **Receive** (Read from pipe).
+
+- **Synchronization**: By default, interactions are **blocking**. The sender waits for a receiver, and the receiver waits for a sender.
+
+## 57. Unbuffered vs. Buffered Channels
+
+| Feature              | **Unbuffered** (`make(chan int)`)                    | **Buffered** (`make(chan int, n)`)              |
+| -------------------- | ---------------------------------------------------- | ----------------------------------------------- |
+| **Metaphor**         | **A Synchronous Phone Call**                         | **A Mailbox**                                   |
+| **Behavior**         | Both parties must be "on the line" at the same time. | You can drop a message and walk away.           |
+| **Blocking**         | Sender blocks until someone receives.                | Sender only blocks when the **buffer is full**. |
+| **Single-Goroutine** | ❌ **Deadlocks** if used alone in `main`.            | ✅ **Works** alone (until capacity is hit).     |
+
+**The "Capacity Trap":**
+If a buffered channel is full (`capacity = 2`, `sends = 3`), it behaves exactly like an unbuffered channel: the sender blocks waiting for a receiver.
+
+## 58. WaitGroup: The "Ticket Booking" System
+
+When you launch multiple goroutines, use `sync.WaitGroup` to stop the Main Goroutine from exiting too early.
+
+### The "Security Guard" Analogy
+
+- **`wg.Add(1)`**: **Book a ticket.** (Must be called **BEFORE** `go` to avoid a race condition).
+- **`wg.Done()`**: **Leave the event.** (Called inside the worker, usually via `defer`).
+- **`wg.Wait()`**: **The Guard.** Blocks until every booked ticket has left the building.
+
+**⚠️ The Race Condition Bug:**
+If you put `wg.Add(1)` _inside_ the goroutine, `main` might reach `wg.Wait()` before the goroutine starts. The guard sees "0 tickets booked" and closes the program immediately.
+
+## 59. Mutex: The "One at a Time" Lock
+
+`sync.Mutex` protects shared data (like maps or counters) from being accessed by two goroutines at once.
+
+- **The Rule of Law**: A `sync.Mutex` **must never be copied**. Always use a **Pointer Receiver** (`func (s *SafeStruct)`) so all goroutines look at the _same_ lock.
+- **Critical Section**: Keep the `Lock()` and `Unlock()` fast. Do not perform expensive I/O inside a lock.
+
+## 60. The "Select" Statement
+
+`select` lets a goroutine wait on multiple channels at once. It blocks until one case is ready.
+
+- **Random Tie-Breaker**: If multiple channels are ready at the same time, Go picks one **at random**. Order is not guaranteed.
+- **Non-blocking (`default`)**: Use a `default` case to "poll" a channel without waiting.
+- **Quit Signals**: Used to handle cancellation requests.
+
+```go
+select {
+case msg := <-c1:
+    fmt.Println("Received:", msg)
+case <-time.After(1 * time.Second):
+    fmt.Println("Timed out!")
+}
+```
+
+## 61. Channel Closing & "Zombie" Data
+
+Closing a channel (`close(ch)`) signals that no more data will be sent.
+
+- **The "Zombie" Rule**: You can still read from a closed channel!
+- If the buffer has data, you get the data.
+- If the buffer is empty, you get the **Zero Value** (0, "", false) immediately (no blocking).
+
+- **The "Comma OK" Check**: Always check if the channel is actually open.
+
+```go
+val, ok := <-ch
+if !ok { return } // Channel is closed and empty
+```
+
+## 62. Concurrency "Hall of Fame" Bugs
+
+### 1. The "Nil" Channel Trap
+
+A channel that is declared but not initialized (`var c chan int`) is `nil`.
+
+- **Send to nil:** Blocks forever.
+- **Receive from nil:** Blocks forever.
+- **Result:** Deadlock.
+
+### 2. The Single-Goroutine Deadlock
+
+Attempts to send to an unbuffered channel in `main` without a background receiver.
+
+- **Why?** `main` freezes waiting for a receiver, but since `main` is frozen, it can never reach the code that receives.
+
+### 3. The "Overflow" Deadlock
+
+Filling a buffered channel beyond its capacity in a single goroutine.
+
+- **Why?** Once the buffer is full, the channel becomes unbuffered (blocking). `main` freezes waiting for space, but no one is there to empty it.
+
+### 4. The Mutex Copy
+
+Passing a struct containing a Mutex by value.
+
+- **Why?** You create a photocopy of the lock. Goroutine A locks the copy, Goroutine B locks the original. Both enter, data gets corrupted.
+
+### 5. The WaitGroup Race
+
+Calling `wg.Add(1)` inside the goroutine.
+
+- **Why?** `main` executes faster than the goroutine starts. `wg.Wait()` sees 0 counters and exits before work begins.
