@@ -1,4 +1,4 @@
-# Learn Go
+Learn Go
 
 This is a personal repository for learning the Go programming language. It contains various examples, exercises, and notes to help me understand Go's syntax, features, and best practices.
 
@@ -1253,3 +1253,142 @@ Passing a struct containing a Mutex by value.
 Calling `wg.Add(1)` inside the goroutine.
 
 - **Why?** `main` executes faster than the goroutine starts. `wg.Wait()` sees 0 counters and exits before work begins.
+
+## 63. Error Handling Philosophy
+
+We treat errors as values, not exceptions. We prioritize **Context Tracing** over Stack Tracing.
+
+- **Library:** Standard `errors` and `fmt` (no 3rd party `pkg/errors` unless debugging deep crashes).
+- **Goal:** An error message should read like a sentence that explains the _logic path_ of the failure, not just the file line number.
+- ❌ `connection refused (main.go:24)`
+- ✅ `failed to create user: check email existence: db connection refused`
+
+## 64. Defining Errors (Sentinel Errors)
+
+Errors that need to be checked logically (e.g., for 404s or 409s) must be defined as **Global Variables** in the package that produces them. This allows other packages to check them by reference.
+
+```go
+// internal/storage/errors.go
+package storage
+
+import "errors"
+
+// Naming Convention: Start with 'Err'
+var (
+    ErrNotFound      = errors.New("resource not found")
+    ErrDuplicate     = errors.New("resource already exists")
+    ErrConnection    = errors.New("connection timeout")
+)
+```
+
+## 65. returning Errors (Wrapping)
+
+Never just return an error "naked" if it comes from a lower layer. Always wrap it with context using `%w` so we know _what action_ failed.
+
+```go
+// internal/service/user.go
+func CreateUser(u User) error {
+    if err := storage.Save(u); err != nil {
+        // ❌ BAD: return err
+        // ✅ GOOD: Wrap it!
+        return fmt.Errorf("create user failed: %w", err)
+    }
+    return nil
+}
+```
+
+## 66. Checking Errors (Unwrapping)
+
+Never check error messages by string comparison. Always use `errors.Is` to check if a specific Sentinel Error exists anywhere in the chain (onion peeling).
+
+```go
+// internal/api/handlers/user.go
+err := service.CreateUser(u)
+
+if err != nil {
+    // Check if the underlying cause was a Duplicate
+    if errors.Is(err, storage.ErrDuplicate) {
+        // Handle 409 Conflict
+        return
+    }
+
+    // Check if the underlying cause was Not Found
+    if errors.Is(err, storage.ErrNotFound) {
+        // Handle 404 Not Found
+        return
+    }
+
+    // Default to 500
+    log.Println(err) // Logs: "create user failed: resource already exists"
+}
+```
+
+## 67. Stack Traces (Debugging)
+
+By default, go doesn't print stack traces to keep logs clean. If a specific error is hard to debug (e.g., a random panic), switch to `pkg/errors` or use `fmt.Printf("%+v", err)` during development, but `fmt.Errorf` with strict context wrapping is usually sufficient for production.
+
+## 68. Custom Error Types (Rich Errors)
+
+When an error needs to carry **data** (like an HTTP Status Code, valid field names, or retry counts), we use a custom struct that implements the `error` interface. This allows us to handle different error scenarios dynamically.
+
+**Definition:**
+
+```go
+// internal/api/errors.go
+type RequestError struct {
+    StatusCode int
+    Err        error // The underlying technical error
+}
+
+// 1. Implement the Error() interface
+func (r *RequestError) Error() string {
+    return fmt.Sprintf("status %d: %v", r.StatusCode, r.Err)
+}
+
+// 2. Helper to create it easily
+func NewRequestError(err error, status int) error {
+    return &RequestError{
+        Err:        err,
+        StatusCode: status,
+    }
+}
+```
+
+**Usage (Checking with `errors.As`):**
+Unlike Sentinel errors (which use `errors.Is`), Custom Structs are checked using `errors.As` to cast the error back to its struct type.
+
+```go
+// internal/api/handlers/base.go
+func HTTPErrorHandler(w http.ResponseWriter, err error) {
+    // Check if it's our Custom RequestError
+    var reqErr *RequestError
+
+    // "If err can be cast to *RequestError, put it inside reqErr"
+    if errors.As(err, &reqErr) {
+        // We can now access the custom fields!
+        w.WriteHeader(reqErr.StatusCode)
+        json.NewEncoder(w).Encode(map[string]string{"error": reqErr.Err.Error()})
+        return
+    }
+
+    // Default Fallback
+    w.WriteHeader(500)
+    json.NewEncoder(w).Encode(map[string]string{"error": "Internal Server Error"})
+}
+```
+
+## 69. Panic & Recover (Unrecoverable Errors)
+
+Go does not use exceptions for control flow. `panic` is reserved **only** for truly unrecoverable state errors (e.g., nil pointer dereference, initialization failure on startup).
+
+- **Rule:** Never `panic` in a handler or library code. Return an `error` instead.
+- **Middleware:** We use a "Recovery Middleware" at the top level to catch accidental panics and prevent the server from crashing.
+
+## 70. Summary of Error Types
+
+| Error Type   | Example                      | Use Case                                             | Check With                          |
+| ------------ | ---------------------------- | ---------------------------------------------------- | ----------------------------------- |
+| **Simple**   | `errors.New("fail")`         | Internal, static text, no logic needed.              | N/A (Logging only)                  |
+| **Sentinel** | `var ErrNotFound ...`        | Expected failures (404, 409) that logic must handle. | `errors.Is(err, ErrNotFound)`       |
+| **Wrapped**  | `fmt.Errorf("...: %w", err)` | Adding context to an error trace.                    | `errors.Is` (Unwraps automatically) |
+| **Custom**   | `type AppError struct...`    | Passing metadata (Status codes, JSON fields).        | `errors.As(err, &target)`           |
