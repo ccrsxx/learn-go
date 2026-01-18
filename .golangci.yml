@@ -1,10 +1,4 @@
 version: '2'
 
 linters:
-  default: all
-  disable:
-    - wsl
-    - mnd
-    - revive
-    - forbidigo
-    - gomoddirectives
+  default: standard
