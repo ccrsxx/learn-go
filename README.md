@@ -1,4 +1,4 @@
-Learn Go
+# Learn Go
 
 This is a personal repository for learning the Go programming language. It contains various examples, exercises, and notes to help me understand Go's syntax, features, and best practices.
 
@@ -1392,3 +1392,102 @@ Go does not use exceptions for control flow. `panic` is reserved **only** for tr
 | **Sentinel** | `var ErrNotFound ...`        | Expected failures (404, 409) that logic must handle. | `errors.Is(err, ErrNotFound)`       |
 | **Wrapped**  | `fmt.Errorf("...: %w", err)` | Adding context to an error trace.                    | `errors.Is` (Unwraps automatically) |
 | **Custom**   | `type AppError struct...`    | Passing metadata (Status codes, JSON fields).        | `errors.As(err, &target)`           |
+
+Here are the missing in-depth sections focusing on Go performance, memory management (Heap vs. Stack), and best practices for return values. You can append these directly to the end of your `README.md`.
+
+## 71. Performance: The "Everything Should Be a Pointer" Myth
+
+Coming from Node.js, Python, or Java, everything is a reference (pointer) by default. A common beginner mistake in Go is assuming that passing or returning pointers (`*User`) is always faster than passing values (`User`) because it "avoids copying."
+
+**In Go, copying a value is often FASTER than using a pointer.**
+
+### Why? (Stack vs. Heap)
+
+Go manages memory in two places:
+
+1. **The Stack:** Extremely fast, automatically cleaned up the millisecond a function finishes. No Garbage Collector (GC) overhead.
+2. **The Heap:** Slower, requires memory allocation, and relies on the Garbage Collector to clean it up later.
+
+### Escape Analysis
+
+When you compile Go code, the compiler runs "Escape Analysis."
+
+- If you return a **Value** (`return User{}`), Go keeps it on the **Stack**. (Blazing fast).
+- If you return a **Pointer** (`return &User{}`), the data "escapes" the function's scope. Go is forced to move it to the **Heap**. (Causes GC overhead).
+
+### The Rule of Thumb for Structs
+
+| Type of Struct                                    | What to Return / Pass    | Why?                                                                  |
+| :------------------------------------------------ | :----------------------- | :-------------------------------------------------------------------- |
+| **Small Data** (Config, Coordinates, simple User) | **Value** (`User`)       | Copying a few bytes is cheaper than triggering the Garbage Collector. |
+| **Large Data** (Giant payloads, heavy buffers)    | **Pointer** (`*Payload`) | Copying massive amounts of memory is too slow.                        |
+| **Needs Mutation** (Database connection, Mutex)   | **Pointer** (`*DB`)      | You need everyone to share the exact same instance.                   |
+
+## 72. Return Value Best Practices: Handling `(Data, Error)`
+
+Go relies heavily on returning multiple values, usually `(Data, error)`. How you format the `Data` when an error occurs depends on whether you return a Value or a Pointer.
+
+### 1. Returning a Pointer (`*User`, `error`)
+
+If your function returns a pointer, use `nil` for the data when an error occurs.
+
+```go
+func GetUser(id int) (*User, error) {
+    if err != nil {
+        return nil, err // ✅ Standard practice
+    }
+    return &User{Name: "Emilia"}, nil
+}
+```
+
+### 2. Returning a Value (`User`, `error`)
+
+If your function returns a value, you cannot return `nil`. You must return the **Zero Value** (an empty struct).
+
+```go
+func GetUser(id int) (User, error) {
+    if err != nil {
+        return User{}, err // ✅ Return an empty struct + error
+    }
+    return User{Name: "Emilia"}, nil
+}
+```
+
+## 73. The `return nil, nil` Dilemma
+
+Sometimes you will encounter a situation where a function executes successfully, but there is "no data" to return. Should you return `nil, nil`?
+
+### Bad Practice: `nil, nil` for Single Objects
+
+If you are searching for a specific user and they don't exist, returning `nil, nil` is an anti-pattern. It leaves the caller confused: _"Did the query succeed? Why is the user nil?"_
+
+**❌ Bad:**
+
+```go
+func FindUser(email string) (*User, error) {
+    // User not found in DB
+    return nil, nil
+}
+```
+
+**✅ Good (Use Sentinel Errors):**
+
+```go
+func FindUser(email string) (*User, error) {
+    // User not found
+    return nil, ErrUserNotFound
+}
+```
+
+### Good Practice: `nil, nil` for Slices/Arrays
+
+If you are querying a list of items (e.g., "Get all active users"), returning `nil, nil` is **perfectly idiomatic** if the database returns 0 rows.
+
+```go
+func GetActiveUsers() ([]User, error) {
+    // No active users found
+    return nil, nil // ✅ Correct
+}
+```
+
+**Why?** Because in Go, a `nil` slice is perfectly safe to loop over (`for range nil` just skips) and perfectly safe to get the length of (`len(nil) == 0`). The caller doesn't need to write a special `if users == nil` check; they can just use the slice immediately.
